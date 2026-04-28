@@ -1,86 +1,89 @@
 <?php
-require 'init.php';
-
-// PHPMailer sınıflarını dahil et
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
 
-// PHPMailer dosyalarını manuel olarak dahil et
-require 'PHPMailer-master/src/Exception.php';
-require 'PHPMailer-master/src/PHPMailer.php';
-require 'PHPMailer-master/src/SMTP.php';
+require 'db.php';
+require 'header.php';
 
-$mesaj_durum = '';
+// PHPMailer dosyalarını projeye dahil ediyoruz
+require 'PHPMailer/src/Exception.php';
+require 'PHPMailer/src/PHPMailer.php';
+require 'PHPMailer/src/SMTP.php';
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $isim = htmlspecialchars(trim($_POST['isim']));
-    $email = filter_var(trim($_POST['email']), FILTER_SANITIZE_EMAIL);
-    $konu = htmlspecialchars(trim($_POST['konu']));
-    $mesaj = htmlspecialchars(trim($_POST['mesaj']));
- 
-    $mail = new PHPMailer(true);
- 
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    $isim = trim($_POST['isim'] ?? '');
+    $email = trim($_POST['email'] ?? '');
+    $konu = trim($_POST['konu'] ?? 'Belirtilmedi');
+    $mesaj = trim($_POST['mesaj'] ?? '');
+
+    // Gelen mesajı önce veritabanına kaydedelim. E-posta gönderimi başarısız olsa bile mesaj kaybolmaz.
     try {
-        // Sunucu Ayarları
+        $stmt = $pdo->prepare("INSERT INTO contact_messages (isim, email, konu, mesaj) VALUES (?, ?, ?, ?)");
+        $stmt->execute([$isim, $email, $konu, $mesaj]);
+        $mesaj_kaydedildi = true;
+    } catch (PDOException $e) {
+        // Veritabanı hatası durumunda en azından e-posta göndermeyi denesin.
+        // Normalde bu hatayı loglamak iyi bir pratiktir.
+        $mesaj_kaydedildi = false;
+    }
+
+    // PHPMailer ile Gerçek Mail Gönderme İşlemi
+    $mail = new PHPMailer(true);
+    try {
+        // Sunucu ayarları (Kendi Gmail bilgilerini buraya girmelisin)
+        $mail->setLanguage('tr'); // Hata mesajlarını Türkçe yapmak için
         $mail->isSMTP();
-        $mail->Host       = 'smtp.gmail.com'; // SMTP sunucunuzun adresi (Örn: Gmail için)
+        $mail->Host       = 'smtp.gmail.com';
         $mail->SMTPAuth   = true;
-        $mail->Username   = 'cebecicicek73@gmail.com'; // SMTP kullanıcı adınız (Gmail adresiniz)
-        $mail->Password   = 'holunfqjljalqwiy';   // SMTP şifreniz (Gmail için uygulama şifresi)
+        $mail->Username   = 'gamzekaragoz800@gmail.com'; // DİKKAT: Kendi Gmail adresinizi yazın
+        $mail->Password   = 'wtewdfiabkvccngp';   // DİKKAT: Google'dan alınan 16 haneli Uygulama Şifresini yazın
         $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
         $mail->Port       = 587;
-        $mail->CharSet = 'UTF-8';
- 
-        // Alıcılar
-        $mail->setFrom($email, $isim); // Gönderen
-        $mail->addAddress('albinabulut@gmail.com', 'Çiçek Sepetim Yöneticisi'); // Alıcı (Mesajların geleceği kendi adresiniz)
-        $mail->addReplyTo($email, $isim); // Yanıt adresi
- 
+        $mail->CharSet    = 'UTF-8';
+
+        // Alıcı ve Gönderen Ayarları
+        $mail->setFrom('gamzekaragoz800@gmail.com', 'GK Takı İletişim Formu'); // Gönderici (Username ile aynı olmalı)
+        $mail->addAddress('albinabulut@gmail.com'); // Mesajın kime gideceği
+        $mail->addReplyTo($email, $isim); // Yanıtla dendiğinde müşterinin mailine gitsin
+
         // İçerik
-        $mail->isHTML(false); // E-postayı düz metin olarak ayarla
-        $mail->Subject = $konu;
-        $mail->Body    = "Gönderen: $isim\nE-posta: $email\n\nMesaj:\n$mesaj";
- 
+        $mail->isHTML(true);
+        $mail->Subject = 'Siteden Yeni Mesaj: ' . htmlspecialchars($konu);
+        $mail->Body    = "<strong>Gönderen İsim:</strong> " . htmlspecialchars($isim) . "<br><strong>E-Posta:</strong> " . htmlspecialchars($email) . "<br><strong>Konu:</strong> " . htmlspecialchars($konu) . "<br><br><strong>Mesaj:</strong><br>" . nl2br(htmlspecialchars($mesaj));
+
         $mail->send();
-        $mesaj_durum = '<div class="alert alert-success">Mesajınız başarıyla gönderildi.</div>';
+        echo "<p style='color:green;'>Mesajınız başarıyla gönderildi! Size en kısa sürede dönüş yapacağız.</p>";
     } catch (Exception $e) {
-        $mesaj_durum = '<div class="alert alert-danger">Mesaj gönderilemedi. Hata: ' . htmlspecialchars($mail->ErrorInfo) . '</div>';
+        $hata_mesaji = "Mesaj gönderilirken bir hata oluştu. Hata: {$mail->ErrorInfo}";
+        // E-posta gitmese bile veritabanına kaydedildiyse kullanıcıya bunu bildirelim.
+        if ($mesaj_kaydedildi) {
+            $hata_mesaji = "E-posta gönderilemedi ancak mesajınız sistemimize kaydedildi. En kısa sürede size ulaşacağız. (Hata: {$mail->ErrorInfo})";
+        }
+        echo "<p style='color:red;'>{$hata_mesaji}</p>";
     }
 }
 
-// Kullanıcı giriş yapmışsa bilgilerini otomatik doldurmak için veritabanından çekelim
-$default_name = $_SESSION['user_name'] ?? '';
-$default_email = '';
-
+$otomatik_isim = '';
+$otomatik_email = '';
 if (isset($_SESSION['user_id'])) {
-    $stmt = $pdo->prepare("SELECT email FROM users WHERE id = ?");
-    $stmt->execute([$_SESSION['user_id']]);
-    $user_data = $stmt->fetch();
+    $otomatik_isim = $_SESSION['ad_soyad'] ?? '';
+    // Veritabanından kullanıcının e-posta adresini çekiyoruz
+    $stmt_user = $pdo->prepare("SELECT email FROM users WHERE id = ?");
+    $stmt_user->execute([$_SESSION['user_id']]);
+    $user_data = $stmt_user->fetch();
     if ($user_data) {
-        $default_email = $user_data['email'];
+        $otomatik_email = $user_data['email'];
     }
 }
-
-require 'header.php';
 ?>
 
-<div class="row justify-content-center mt-5">
-    <div class="col-md-6">
-        <div class="card shadow-sm">
-            <div class="card-header bg-pink text-white"><h4>Bize Ulaşın</h4></div>
-            <div class="card-body">
-                <p class="text-center mb-4">Bizimle iletişime geçmek için aşağıdaki formu doldurabilirsiniz.</p>
-                <?= $mesaj_durum; ?>
-                <form action="bize_ulasin.php" method="POST">
-                    <div class="mb-3"><label>Adınız Soyadınız</label><input type="text" name="isim" class="form-control" value="<?= htmlspecialchars($default_name) ?>" required></div>
-                    <div class="mb-3"><label>E-posta Adresiniz</label><input type="email" name="email" class="form-control" value="<?= htmlspecialchars($default_email) ?>" required></div>
-                    <div class="mb-3"><label>Konu</label><input type="text" name="konu" class="form-control" required></div>
-                    <div class="mb-3"><label>Mesajınız</label><textarea name="mesaj" class="form-control" rows="5" required></textarea></div>
-                    <button type="submit" class="btn btn-pink w-100">Mesajı Gönder</button>
-                </form>
-            </div>
-        </div>
-    </div>
-</div>
+<h2>Bize Ulaşın</h2>
+<form method="POST">
+    <input type="text" name="isim" placeholder="İsminiz" value="<?= htmlspecialchars($otomatik_isim) ?>" required><br><br>
+    <input type="email" name="email" placeholder="E-posta Adresiniz" value="<?= htmlspecialchars($otomatik_email) ?>" required><br><br>
+    <input type="text" name="konu" placeholder="Mesajınızın Konusu" required><br><br>
+    <textarea name="mesaj" placeholder="Mesajınız..." rows="5" required></textarea><br><br>
+    <button type="submit" class="btn">Gönder</button>
+</form>
 
 <?php require 'footer.php'; ?>

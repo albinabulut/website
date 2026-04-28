@@ -1,63 +1,60 @@
+<?php
+session_start();
+
+// Kayan yazı için son 5 duyuruyu çekiyoruz (Tüm sayfalarda menünün altında görünmesi için)
+$kayan_duyurular = [];
+if (isset($pdo)) {
+    $stmtDuyuru = $pdo->query("SELECT * FROM announcements ORDER BY yayin_tarihi DESC LIMIT 5");
+    $kayan_duyurular = $stmtDuyuru->fetchAll();
+}
+?>
 <!DOCTYPE html>
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Çiçek Sepetim</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-        body { background-color: #fff0f5; } /* Açık pembe arka plan */
-        .product-card img { height: 250px; object-fit: cover; }
-        .bg-pink { background-color: #e83e8c !important; }
-        .text-pink { color: #e83e8c !important; }
-        .btn-pink { background-color: #e83e8c; color: white; border-color: #e83e8c; }
-        .btn-pink:hover { background-color: #d81b60; color: white; border-color: #d81b60; }
-        .badge-pink { background-color: white; color: #e83e8c; }
-        .list-group-item.active { background-color: #e83e8c !important; border-color: #e83e8c !important; }
-        .navbar-brand, .nav-link { font-weight: 500; }
-    </style>
+    <title>GK Takı</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<nav class="navbar navbar-expand-lg navbar-dark bg-pink mb-4 shadow-sm">
-    <div class="container">
-        <a class="navbar-brand" href="index.php">🌸 Çiçek Sepetim</a>
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-        <div class="collapse navbar-collapse" id="navbarNav">
-            <ul class="navbar-nav ms-auto">
-                <li class="nav-item"><a class="nav-link" href="index.php">Anasayfa</a></li>
-                <li class="nav-item"><a class="nav-link" href="iletisim.php">İletişim</a></li>
-                <li class="nav-item"><a class="nav-link" href="bize_ulasin.php">Bize Ulaşın</a></li>
-                <li class="nav-item">
-                    <a class="nav-link" href="cart.php">
-                        🛒 Sepet 
-                        <span class="badge badge-pink">
-                            <?= isset($_SESSION['cart']) ? array_sum($_SESSION['cart']) : 0; ?>
-                        </span>
-                    </a>
-                </li>
-                <?php if(isset($_SESSION['original_admin_id'])): ?>
-                    <li class="nav-item">
-                        <a class="nav-link btn btn-warning btn-sm text-dark ms-2 fw-bold px-3" href="?switch_back=1">🔙 Admin'e Dön</a>
-                    </li>
+    <header>
+        <h1>GK Takı - Şıklığın Adresi</h1>
+        <nav>
+            <a href="index.php">Ana Sayfa</a>
+            <a href="bize_ulasin.php">Bize Ulaşın</a>
+            <a href="iletisim.php">İletişim</a>
+            
+            <?php if(isset($_SESSION['user_id'])): ?>
+                <a href="sepet.php">Sepetim</a>
+                <?php if(isset($_SESSION['rol']) && $_SESSION['rol'] == 'admin'): ?>
+                    <!-- Multisession Mantığı (Sadece Admin Görebilir) -->
+                    <a href="admin_kullanicilar.php">Kullanıcılar(Admin)</a>
+                    <a href="urun_ekle.php">Ürün Ekle(Admin)</a>
+                    <a href="duyuru_ekle.php">Duyurular(Admin)</a>
+                    <a href="admin_mesajlar.php">Mesajlar(Admin)</a>
+                    <a href="admin_cerezler.php">Çerezler(Admin)</a>
+                    <a href="admin_multisession.php">Multisession(Admin)</a>
                 <?php endif; ?>
-                <?php if(isset($_SESSION['user_id'])): ?>
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="userMenu" role="button" data-bs-toggle="dropdown">👤 <?= htmlspecialchars($_SESSION['user_name']); ?></a>
-                        <ul class="dropdown-menu">
-                            <?php if($_SESSION['role'] === 'admin'): ?>
-                                <li><a class="dropdown-item" href="admin.php">⚙️ Admin Panel</a></li>
-                            <?php endif; ?>
-                            <li><a class="dropdown-item" href="logout.php">Çıkış Yap</a></li>
-                        </ul>
-                    </li>
-                <?php else: ?>
-                    <li class="nav-item"><a class="nav-link" href="login.php">Giriş Yap</a></li>
-                    <li class="nav-item"><a class="nav-link" href="register.php">Üye Ol</a></li>
+                
+                <?php if(isset($_SESSION['eski_admin_id'])): ?>
+                    <a href="admin_multisession.php?geri_don=1" style="background-color: #e74c3c; padding: 2px 10px; border-radius: 4px;">Admine Dön</a>
                 <?php endif; ?>
-            </ul>
-        </div>
+                <a href="logout.php">Çıkış Yap</a>
+            <?php else: ?>
+                <a href="login.php">Giriş Yap</a>
+                <a href="register.php">Kayıt Ol</a>
+            <?php endif; ?>
+        </nav>
+    </header>
+    
+    <!-- Kayan Duyuru Bandı (Menünün hemen altında tam ekran) -->
+    <?php if (count($kayan_duyurular) > 0): ?>
+    <div class="duyuru-bandi">
+        <marquee behavior="scroll" direction="left" onmouseover="this.stop();" onmouseout="this.start();">
+            <?php foreach ($kayan_duyurular as $kd): ?>
+                <span style="margin-right: 50px;"><?= htmlspecialchars($kd['icerik']) ?></span>
+            <?php endforeach; ?>
+        </marquee>
     </div>
-</nav>
-<div class="container">
+    <?php endif; ?>
+
+    <main>
