@@ -23,8 +23,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $mail->isSMTP();
         $mail->Host       = 'smtp.gmail.com';
         $mail->SMTPAuth   = true;
-        $mail->Username   = 'cebecicicek73@gmail.com'; // Kendi Gmail adresinizi yazın
-        $mail->Password   = 'holunfqjljalqwiy';   // Uygulama şifrenizi yazın
+        $mail->Username   = 'mail@gmail.com'; // Kendi Gmail adresinizi yazın
+        $mail->Password   = 'uygulamaşidresi';   // Uygulama şifrenizi yazın
         $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
         $mail->Port       = 587;
         $mail->CharSet = 'UTF-8';
