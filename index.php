@@ -1,54 +1,46 @@
 <?php
-require 'init.php';
+require 'db.php';
 require 'header.php';
 
-// Duyuruları Çekelim
-$stmt_announcements = $pdo->query("SELECT * FROM announcements ORDER BY created_at DESC LIMIT 3");
-$announcements = $stmt_announcements->fetchAll();
+// Ürünleri veritabanından çek
+$stmt = $pdo->query("SELECT * FROM products ORDER BY id DESC");
+$urunler = $stmt->fetchAll();
 
-// Ürünleri Çekelim
-$stmt_products = $pdo->query("SELECT * FROM products ORDER BY id DESC");
-$products = $stmt_products->fetchAll();
+// Eğer veritabanında hiç ürün yoksa, test için rastgele takı ürünleri ekleyelim
+if (count($urunler) == 0) {
+    $rastgele_urunler = [
+        ['Altın Kaplama Zirkon Kolye', 'Günlük kullanıma uygun, kararmaz altın kaplama zarif zirkon taşlı kolye.', 250.00, 20, 'https://images.unsplash.com/photo-1599643478514-4a820c56a820?w=400'],
+        ['925 Ayar Gümüş Yüzük', 'Özel tasarım tektaş detaylı parlak gümüş kadın yüzüğü.', 399.90, 15, 'https://images.unsplash.com/photo-1605100804763-247f6612d540?w=400'],
+        ['İnci Detaylı Küpe', 'Gerçek tatlı su incisi kullanılarak tasarlanmış sallantılı şık küpe.', 180.50, 30, 'https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?w=400'],
+        ['Doğal Ametist Bileklik', 'Negatif enerjiyi uzaklaştıran, özel kesim doğal ametist taşı bileklik.', 120.00, 50, 'https://images.unsplash.com/photo-1611591437281-460bfbe1220a?w=400'],
+        ['Pırlanta Görünümlü Takı Seti', 'Kolye, küpe ve yüzükten oluşan, özel günler için parıltılı set.', 850.00, 10, 'https://images.unsplash.com/photo-1515562141207-7a8efbc88b71?w=400']
+    ];
+    
+    $ekleStmt = $pdo->prepare("INSERT INTO products (urun_adi, aciklama, fiyat, stok, resim_url) VALUES (?, ?, ?, ?, ?)");
+    foreach ($rastgele_urunler as $urun) {
+        $ekleStmt->execute($urun);
+    }
+    
+    // Ürünleri ekledikten sonra ana sayfada göstermek için listeyi güncelliyoruz
+    $stmt = $pdo->query("SELECT * FROM products ORDER BY id DESC");
+    $urunler = $stmt->fetchAll();
+}
 ?>
 
-<!-- Duyurular Bölümü -->
-<?php if($announcements): ?>
-    <div class="alert alert-secondary shadow-sm" style="background-color: #fdf5f8; border-color: #f8bbd0;">
-        <h5 class="alert-heading text-pink">📢 Duyurular</h5>
-        <ul class="mb-0 text-dark">
-            <?php foreach($announcements as $ann): ?>
-                <li><strong><?= htmlspecialchars($ann['title']); ?>:</strong> <?= htmlspecialchars($ann['content']); ?></li>
-            <?php endforeach; ?>
-        </ul>
-    </div>
-<?php endif; ?>
-
-<!-- Ürün Vitrini -->
-<div class="row mt-4">
-    <h2 class="text-pink">En Güzel Çiçekler</h2>
-    <hr>
-    <?php if($products): ?>
-        <?php foreach($products as $product): ?>
-            <div class="col-md-4 mb-4">
-                <div class="card h-100 product-card shadow-sm border-0">
-                    <img src="<?= htmlspecialchars($product['image_url']); ?>" class="card-img-top rounded-top" alt="<?= htmlspecialchars($product['name']); ?>">
-                    <div class="card-body d-flex flex-column">
-                        <h5 class="card-title text-dark"><?= htmlspecialchars($product['name']); ?></h5>
-                        <p class="card-text text-muted"><?= htmlspecialchars(mb_substr($product['description'], 0, 50)) . '...'; ?></p>
-                        <h4 class="text-pink mt-auto fw-bold"><?= number_format($product['price'], 2, ',', '.'); ?> TL</h4>
-                        
-                        <!-- Sepete Ekle Formu -->
-                        <form action="cart_process.php" method="POST" class="mt-3">
-                            <input type="hidden" name="product_id" value="<?= $product['id']; ?>">
-                            <input type="hidden" name="action" value="add">
-                            <button type="submit" class="btn btn-pink w-100">🛒 Sepete Ekle</button>
-                        </form>
-                    </div>
-                </div>
+<h2>Vitrinimiz</h2>
+<div class="urun-grid">
+    <?php if (count($urunler) > 0): ?>
+        <?php foreach ($urunler as $urun): ?>
+            <div class="urun-karti">
+                <img src="<?= htmlspecialchars($urun['resim_url'] ?: 'default.jpg') ?>" alt="Ürün Resmi" style="width:100%; height:200px; object-fit:cover;">
+                <h3><?= htmlspecialchars($urun['urun_adi']) ?></h3>
+                <p style="color: #e74c3c; font-weight: bold;"><?= number_format($urun['fiyat'], 2, ',', '.') ?> TL</p>
+                <p><?= htmlspecialchars(substr($urun['aciklama'], 0, 50)) ?>...</p>
+                <a href="sepete_ekle.php?product_id=<?= $urun['id'] ?>" class="btn">Sepete Ekle</a>
             </div>
         <?php endforeach; ?>
     <?php else: ?>
-        <p class="text-muted">Henüz ürün eklenmemiş. Admin panelinden yeni çiçekler ekleyebilirsiniz.</p>
+        <p>Henüz ürün eklenmemiş.</p>
     <?php endif; ?>
 </div>
 

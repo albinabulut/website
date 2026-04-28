@@ -1,54 +1,70 @@
 <?php
-require 'init.php';
+require 'db.php';
+require 'header.php';
 
-if (isset($_SESSION['user_id'])) {
-    header("Location: index.php");
-    exit();
-}
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    $ad_soyad = $_POST['ad_soyad'];
+    $email = $_POST['email'];
+    $telefon = $_POST['telefon'];
+    $adres = $_POST['adres'];
+    // Şifreyi güvenlik için Hash'liyoruz
+    $sifre = password_hash($_POST['sifre'], PASSWORD_DEFAULT); 
 
-$error = '';
-$success = '';
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $name = trim($_POST['name']);
-    $email = trim($_POST['email']);
-    $password = $_POST['password'];
-    $phone = trim($_POST['phone']);
-    $address = trim($_POST['address']);
-
-    if (empty($name) || empty($email) || empty($password) || empty($phone) || empty($address)) {
-        $error = "Lütfen tüm alanları doldurun.";
+    $stmt = $pdo->prepare("INSERT INTO users (ad_soyad, email, telefon, adres, sifre) VALUES (?, ?, ?, ?, ?)");
+    
+    if($stmt->execute([$ad_soyad, $email, $telefon, $adres, $sifre])) {
+        echo "<p style='color:green;'>Kayıt başarılı! <a href='login.php'>Giriş yapabilirsiniz</a>.</p>";
     } else {
-        $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
-        $stmt = $pdo->prepare("INSERT INTO users (name, email, password, phone, address, role) VALUES (?, ?, ?, ?, ?, 'user')");
-        
-        try {
-            $stmt->execute([$name, $email, $hashedPassword, $phone, $address]);
-            $success = "Kayıt başarılı! Şimdi giriş yapabilirsiniz.";
-        } catch (PDOException $e) {
-            $error = "Bu e-posta adresi zaten kullanımda.";
-        }
+        echo "<p style='color:red;'>Kayıt sırasında hata oluştu. Bu e-posta zaten kullanımda olabilir.</p>";
     }
 }
-require 'header.php';
 ?>
-<div class="row justify-content-center mt-5">
-    <div class="col-md-6">
-        <div class="card shadow-sm">
-            <div class="card-header bg-pink text-white"><h4>Üye Ol</h4></div>
-            <div class="card-body">
-                <?php if($error): ?><div class="alert alert-danger"><?= $error ?></div><?php endif; ?>
-                <?php if($success): ?><div class="alert alert-success"><?= $success ?></div><?php endif; ?>
-                <form action="register.php" method="POST">
-                    <div class="mb-3"><label>Ad Soyad</label><input type="text" name="name" class="form-control" required></div>
-                    <div class="mb-3"><label>E-posta Adresi</label><input type="email" name="email" class="form-control" required></div>
-                    <div class="mb-3"><label>Şifre</label><input type="password" name="password" class="form-control" required></div>
-                    <div class="mb-3"><label>Telefon Numarası</label><input type="tel" name="phone" class="form-control" required maxlength="10" minlength="10" pattern="[0-9]{10}" placeholder="Örn: 5555555555" title="Lütfen başında sıfır olmadan 10 haneli numaranızı girin"></div>
-                    <div class="mb-3"><label>Adres</label><textarea name="address" class="form-control" rows="2" required></textarea></div>
-                    <button type="submit" class="btn btn-pink w-100">Kayıt Ol</button>
-                </form>
-            </div>
-        </div>
-    </div>
-</div>
+
+<h2>Yeni Üye Kaydı</h2>
+<form method="POST" id="kayitFormu" novalidate>
+    <input type="text" name="ad_soyad" placeholder="Adınız Soyadınız" required><br><br>
+    <input type="email" name="email" placeholder="E-posta Adresiniz" required><br><br>
+    <input type="text" name="telefon" placeholder="Telefon Numaranız" maxlength="11" minlength="11" pattern="[0-9]{11}" title="Lütfen 11 haneli telefon numaranızı giriniz (Örn: 05xxxxxxxxx)" required><br><br>
+    <textarea name="adres" placeholder="Adresiniz" rows="3" required></textarea><br><br>
+    <input type="password" name="sifre" placeholder="Şifreniz" required><br><br>
+    <button type="submit">Kayıt Ol</button>
+</form>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const form = document.getElementById('kayitFormu');
+    const inputs = form.querySelectorAll('input[required], textarea[required]');
+
+    // Kullanıcı giriş yaparken veya kutudan çıkarken anlık (canlı) kontrol et
+    inputs.forEach(input => {
+        input.addEventListener('input', kontrolEt);
+        input.addEventListener('blur', kontrolEt);
+    });
+
+    function kontrolEt() {
+        if (this.value.trim() === '') {
+            this.style.border = '2px solid red'; // Boşsa kutuyu anlık kırmızı yap
+        } else {
+            this.style.border = '1px solid #ccc'; // Doluysa normal görünüme çevir
+        }
+    }
+
+    // Kayıt ol butonuna basıldığında boş olanları topluca uyar
+    form.addEventListener('submit', function(e) {
+        let bosAlanlar = [];
+        inputs.forEach(input => {
+            if (input.value.trim() === '') {
+                input.style.border = '2px solid red';
+                bosAlanlar.push(input.getAttribute('placeholder'));
+            }
+        });
+        
+        if (bosAlanlar.length > 0) {
+            e.preventDefault(); // Sayfanın yenilenmesini ve formun gönderilmesini durdur
+            alert("Lütfen şu zorunlu alanları doldurun:\n- " + bosAlanlar.join("\n- "));
+        }
+    });
+});
+</script>
+
 <?php require 'footer.php'; ?>
