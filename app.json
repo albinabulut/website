@@ -1,0 +1,16 @@
+{
+  "expo": {
+    "name": "uzay",
+    "slug": "uzay",
+    "version": "1.0.0",
+    "scheme": "uzay",
+    "userInterfaceStyle": "automatic",
+    "android": {
+      "package": "giris.login",
+      "googleServicesFile": "./google-services (1).json"
+    },
+    "plugins": [
+      "expo-router"
+    ]
+  }
+}

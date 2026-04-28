@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "336534749749",
+    "project_id": "fir-login-36824",
+    "storage_bucket": "fir-login-36824.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:336534749749:android:e0325c3f73231d914c677c",
+        "android_client_info": {
+          "package_name": "giris.login"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCH5PKQISIlHks7T6veaIMEhhafdoA4aTc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
