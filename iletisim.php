@@ -35,8 +35,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $mail->isSMTP();
         $mail->Host       = 'smtp.gmail.com';
         $mail->SMTPAuth   = true;
-        $mail->Username   = 'gamzekaragoz800@gmail.com'; // DİKKAT: Kendi Gmail adresinizi yazın
-        $mail->Password   = 'wtewdfiabkvccngp';   // DİKKAT: Google'dan alınan 16 haneli Uygulama Şifresini yazın
+        $mail->Username   = 'mail@gmail.com'; // DİKKAT: Kendi Gmail adresinizi yazın
+        $mail->Password   = 'uygulamaşidresi';   // DİKKAT: Google'dan alınan 16 haneli Uygulama Şifresini yazın
         $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
         $mail->Port       = 587;
         $mail->CharSet    = 'UTF-8';
