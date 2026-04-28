@@ -25,8 +25,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $mail->isSMTP();
         $mail->Host       = 'smtp.gmail.com'; // SMTP sunucunuzun adresi (Örn: Gmail için)
         $mail->SMTPAuth   = true;
-        $mail->Username   = 'cebecicicek73@gmail.com'; // SMTP kullanıcı adınız (Gmail adresiniz)
-        $mail->Password   = 'holunfqjljalqwiy';   // SMTP şifreniz (Gmail için uygulama şifresi)
+        $mail->Username   = 'mail@gmail.com'; // SMTP kullanıcı adınız (Gmail adresiniz)
+        $mail->Password   = 'uygulamaşifre';   // SMTP şifreniz (Gmail için uygulama şifresi)
         $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
         $mail->Port       = 587;
         $mail->CharSet = 'UTF-8';
